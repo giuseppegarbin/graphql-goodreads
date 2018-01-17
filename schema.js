@@ -10,6 +10,10 @@ const {
     GraphQLList
 } = require('graphql')
 
+const fetchAuthor = id =>
+    fetch(`https://www.goodreads.com/author/show/${id}?format=xml&key=nsTlTqmDhDY5pjis0wXyFQ`)
+    .then(response => response.text())
+    .then(parseXML)
 
 const BookType = new GraphQLObjectType({
     name: 'Book',
@@ -26,6 +30,14 @@ const BookType = new GraphQLObjectType({
         isbn: {
             type: GraphQLString,
             resolve: xml => xml.GoodreadsResponse.book[0].isbn[0]
+        },
+        authors: {
+            type: new GraphQLList(AuthorType),
+            resolve: xml => {
+                const authorElements = xml.GoodreadsResponse.book[0].authors[0].author
+                const ids = authorElements.map(elem => elem.id[0])
+                return Promise.all(ids.map(id => fetchAuthor))
+            }
         }
     })
 })
